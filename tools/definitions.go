@@ -1,16 +1,14 @@
-// tools/definitions.go
 package tools
 
 import "encoding/json"
 
-// ToolFunction define a assinatura da função principal de uma ferramenta.
-// Ela recebe os argumentos como um JSON "cru" e retorna o resultado ou um erro.
+// ToolFunction define a estrutura da função principal de uma ferramenta
+// Ela recebe os argumentos como um JSON "cru" e retorna o resultado ou um erro
 type ToolFunction func(input json.RawMessage) (string, error)
 
-// ToolDefinition é a nova forma estruturada de definir uma ferramenta.
-// É mais descritiva e robusta do que a implementação anterior baseada em interface.
+// ToolDefinition é a estruturada de definir uma ferramenta.
 type ToolDefinition struct {
-	Name        string
-	Description string
-	Function    ToolFunction
+	Name        string       // Nome da ferramenta
+	Description string       // Descrição da ferramenta, usada para informar o agente
+	Function    ToolFunction // A função que implementa a lógica da ferramenta
 }

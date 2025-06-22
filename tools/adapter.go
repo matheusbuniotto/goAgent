@@ -3,8 +3,7 @@ package tools
 
 import "encoding/json"
 
-// ToolAdapter faz a "ponte" entre o novo padrão (ToolDefinition) e a interface
-// agent.Tool que seu `main.go` espera. Isso permite a transição sem quebrar o código existente.
+// ToolAdapter faz a "ponte" entre o ToolDefinition e a interface
 type ToolAdapter struct {
 	Definition ToolDefinition
 }
@@ -14,7 +13,7 @@ func (a *ToolAdapter) Name() string {
 	return a.Definition.Name
 }
 
-// Description retorna a descrição da ferramenta. Parte da interface agent.Tool.
+// Description retorna a descrição da ferramenta. Parte da interface  do agent.Tool.
 func (a *ToolAdapter) Description() string {
 	return a.Definition.Description
 }
@@ -22,7 +21,7 @@ func (a *ToolAdapter) Description() string {
 // Execute é a chave do adaptador. Ele pega a string de argumentos do agente,
 // a trata como JSON e a passa para a função real da nossa ToolDefinition.
 func (a *ToolAdapter) Execute(args string) (string, error) {
-	// O LLM agora deve ser instruído a fornecer argumentos como um JSON.
+	// O LLM é instruído a fornecer argumentos como um JSON.
 	// Ex: `{"path": "meu_dir", "content": "olá"}` em vez de "meu_dir,olá"
 	rawJSON := json.RawMessage(args)
 	return a.Definition.Function(rawJSON)

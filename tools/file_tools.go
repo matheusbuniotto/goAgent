@@ -1,4 +1,3 @@
-// tools/file_tools.go
 package tools
 
 import (
@@ -8,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-// --- Ferramenta: ListFiles ---
+// ::: Ferramenta: ListFiles :::
 
 // ListFilesInput define os parâmetros para a função ListFiles.
 type ListFilesInput struct {
@@ -59,7 +58,7 @@ var ListFilesDef = ToolDefinition{
 	Function:    listFiles,
 }
 
-// --- Ferramenta: WriteFile ---
+// ::: Ferramenta: WriteFile :::
 
 type WriteFileInput struct {
 	Path    string `json:"path"`
@@ -89,7 +88,7 @@ var WriteFileDef = ToolDefinition{
 	Function:    writeFile,
 }
 
-// --- Ferramenta: ReadFile ---
+// :::: Ferramenta: ReadFile :::
 
 type ReadFileInput struct {
 	Path string `json:"path"`
@@ -116,4 +115,34 @@ var ReadFileDef = ToolDefinition{
 	Name:        "read_file",
 	Description: `Lê o conteúdo de um arquivo. Requer um objeto JSON com a chave "path". Exemplo: {"path": "caminho/arquivo.txt"}`,
 	Function:    readFile,
+}
+
+// ::: Ferramenta: CreateDirectory :::
+type CreateDirectoryInput struct {
+	Path string `json:"path"`
+}
+
+func createDirectory(input json.RawMessage) (string, error) {
+	var typedInput CreateDirectoryInput
+	if err := json.Unmarshal(input, &typedInput); err != nil {
+		return "", fmt.Errorf("JSON inválido para argumentos: %w", err)
+	}
+
+	if typedInput.Path == "" {
+		return "", fmt.Errorf("argumento inválido. 'path' é obrigatório")
+	}
+
+	// 0755 são as permissões = leitura/execução para todos, escrita para o dono
+	err := os.MkdirAll(typedInput.Path, 0755)
+	if err != nil {
+		return "", fmt.Errorf("erro ao criar o diretório '%s': %w", typedInput.Path, err)
+	}
+
+	return fmt.Sprintf("Diretório '%s' criado com sucesso.", typedInput.Path), nil
+}
+
+var CreateDirectoryDef = ToolDefinition{
+	Name:        "create_directory",
+	Description: `Cria um novo diretório no caminho especificado, necessita de um nome. Exemplo: {"path": "meu/novo/nome_diretorio"}`,
+	Function:    createDirectory,
 }

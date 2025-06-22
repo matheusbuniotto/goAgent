@@ -6,18 +6,55 @@ import (
 	"fmt"
 	"os"
 
+	"flag"
+	"log"
+
 	"github.com/matheusbuniotto/goagent/agent"
 	"github.com/matheusbuniotto/goagent/tools"
 )
 
 func main() {
+	// O valor padrão "" significa que o flag não foi usado.
+	model := flag.String("model", "", "O provedor a ser usado para o agente (gemini ou openai). Sobrepõe a detecção automática.")
+	flag.Parse()
+
 	// Carrega chaves de API de variáveis de ambiente.
 	openaiAPIKey := os.Getenv("OPENAI_API_KEY")
 	geminiAPIKey := os.Getenv("GEMINI_API_KEY")
 
-	if openaiAPIKey == "" && geminiAPIKey == "" {
-		fmt.Println("\u001b[91mErro: Nenhuma chave de API encontrada. Por favor, defina OPENAI_API_KEY ou GEMINI_API_KEY.\u001b[0m")
-		os.Exit(1)
+	var llmClient agent.LLMClient
+
+	// A prioridade é o flag da linha de comando -model
+	switch *model {
+	case "gemini":
+		if geminiAPIKey == "" {
+			log.Fatal("\u001b[91mErro: Modelo 'gemini' especificado, mas a chave GEMINI_API_KEY não foi encontrada.\u001b[0m")
+		}
+		fmt.Println("\u001b[92mUsando cliente Google Gemini (especificado via flag).\u001b[0m")
+		llmClient = agent.NewGeminiClient(geminiAPIKey)
+
+	case "openai":
+		if openaiAPIKey == "" {
+			log.Fatal("\u001b[91mErro: Modelo 'openai' especificado, mas a chave OPENAI_API_KEY não foi encontrada.\u001b[0m")
+		}
+		fmt.Println("\u001b[92mUsando cliente OpenAI (especificado via flag).\u001b[0m")
+		llmClient = agent.NewOpenAIClient(openaiAPIKey)
+
+	case "":
+		// Se NENHUM flag for passado, usa gemini por padrão a não ser que não esteja definido.
+		fmt.Println("\u001b[92mNenhum modelo especificado, detectando automaticamente por chave de API...\u001b[0m")
+		if geminiAPIKey != "" {
+			fmt.Println("\u001b[92mUsando cliente Google Gemini.\u001b[0m")
+			llmClient = agent.NewGeminiClient(geminiAPIKey)
+		} else if openaiAPIKey != "" {
+			fmt.Println("\u001b[92mUsando cliente OpenAI.\u001b[0m")
+			llmClient = agent.NewOpenAIClient(openaiAPIKey)
+		} else {
+			log.Fatal("\u001b[91mErro: Nenhuma chave de API encontrada. Por favor, defina OPENAI_API_KEY ou GEMINI_API_KEY.\u001b[0m")
+		}
+
+	default:
+		log.Fatalf("\u001b[91mErro: Modelo desconhecido '%s' especificado. Use 'gemini' ou 'openai'.\u001b[0m", *model)
 	}
 
 	// Instância de ferramentas que o agente poderá usar, vindas do pacte tools
@@ -25,23 +62,14 @@ func main() {
 		&tools.ToolAdapter{Definition: tools.ListFilesDef},
 		&tools.ToolAdapter{Definition: tools.WriteFileDef},
 		&tools.ToolAdapter{Definition: tools.ReadFileDef},
-	}
-	// --- Escolha qual LLM usar ---
-	var llmClient agent.LLMClient
-
-	// Dê prioridade ao Gemini se ambas as chaves estiverem definidas
-	if geminiAPIKey != "" {
-		fmt.Println("\u001b[92mUsando cliente Google Gemini.\u001b[0m")
-		llmClient = agent.NewGeminiClient(geminiAPIKey)
-	} else if openaiAPIKey != "" {
-		fmt.Println("\u001b[92mUsando cliente OpenAI.\u001b[0m")
-		llmClient = agent.NewOpenAIClient(openaiAPIKey)
+		&tools.ToolAdapter{Definition: tools.CreateDirectoryDef},
+		&tools.ToolAdapter{Definition: tools.AskHumanDef},
 	}
 
-	// Inicializa o agente do pacote agent
+	// Inicializa o agente
 	theAgent := agent.NewAgent(llmClient, allTools)
 
-	// Prepara a função para ler a entrada do terminal
+	// Prepara a função para ler o input
 	scanner := bufio.NewScanner(os.Stdin)
 	getUserInput := func() (string, bool) {
 		if !scanner.Scan() {
