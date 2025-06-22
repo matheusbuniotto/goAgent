@@ -5,12 +5,13 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"agent" 
-	"tools" 
+
+	"github.com/matheusbuniotto/goagent/agent"
+	"github.com/matheusbuniotto/goagent/tools"
 )
 
 func main() {
-	// Carregue suas chaves de API de variáveis de ambiente.
+	// Carrega chaves de API de variáveis de ambiente.
 	openaiAPIKey := os.Getenv("OPENAI_API_KEY")
 	geminiAPIKey := os.Getenv("GEMINI_API_KEY")
 
@@ -19,14 +20,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Crie instâncias das ferramentas que o agente poderá usar
-	// Note que agora elas vêm do pacote 'tools'.
+	// Instância de ferramentas que o agente poderá usar, vindas do pacte tools
 	allTools := []agent.Tool{
-		&tools.GetGoVersionTool{},
-		&tools.WriteFileTool{},
-		&tools.ReadFileTool{},
+		&tools.ToolAdapter{Definition: tools.ListFilesDef},
+		&tools.ToolAdapter{Definition: tools.WriteFileDef},
+		&tools.ToolAdapter{Definition: tools.ReadFileDef},
 	}
-
 	// --- Escolha qual LLM usar ---
 	var llmClient agent.LLMClient
 
@@ -39,7 +38,7 @@ func main() {
 		llmClient = agent.NewOpenAIClient(openaiAPIKey)
 	}
 
-	// Inicializa o agente do pacote 'agent'
+	// Inicializa o agente do pacote agent
 	theAgent := agent.NewAgent(llmClient, allTools)
 
 	// Prepara a função para ler a entrada do terminal
@@ -51,8 +50,8 @@ func main() {
 		return scanner.Text(), true
 	}
 
-	// Executa o agente
-	fmt.Println("\u001b[92mChat com GoAgent Refatorado (use 'ctrl-c' para sair)\u001b[0m")
+	// Executa o agente no terminal
+	fmt.Println("\u001b[92mChat com GoAgent ('ctrl-c' para sair)\u001b[0m")
 	err := theAgent.Run(context.Background(), getUserInput)
 	if err != nil {
 		fmt.Printf("\u001b[91mErro fatal do agente: %s\u001b[0m\n", err.Error())
