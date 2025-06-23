@@ -95,4 +95,6 @@ Esse README foi gerado quase integralmente através das ferramentas disponíveis
 
 [ ] Ferramenta otimizada para criar novas ferramentas para o modelo 🔁
 
+[ ] Traduzir para inglês / repo bilingue 
+
 [ ] ....
