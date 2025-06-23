@@ -1,7 +1,7 @@
 # goAgent
 Implementação **bare bones** de agentes de IA utilizando a linguagem go.
 
-![716f9ed5-9992-47be-8c8a-7f09e7225017](https://github.com/user-attachments/assets/6c99ea20-5fb6-40d9-adba-897cd0d40a48)
+![main-image-gemini-generated](https://github.com/user-attachments/assets/49df3432-b530-481c-bc67-20fadaa0d263)
 
 ## Sobre o projeto
 O goAgent é uma implementação de um agente de IA desenvolvida em Go, sem auxilio de nenhum SDK externo. Ele possui diversas ferramentas que podem ser utilizadas para interagir com sistemas de arquivos, automatizar tarefas ou estender funcionalidades de acordo com as necessidades dos usuários. O objetivo principal é entender o funcionamento de um agente com acesso a ferramentas. Esse conteúdo é baseado no artigo [How to build an Agent](https://ampcode.com/how-to-build-an-agent) que implementa um agente usando o SDK do Claude. 
