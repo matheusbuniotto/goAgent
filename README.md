@@ -40,6 +40,8 @@ Para criar uma nova ferramenta, siga os passos abaixo:
 
 3. **Adapte para o sistema**: Crie um `ToolAdapter` usando a definição criada. Você pode registrar esse adaptador no sistema de ferramentas para que possa ser utilizado pelo agente.
 
+4. **Registre a função no main**: Forneça acesso a ferramenta ao agente no bloco Tools no arquivo main. 
+
 ### Exemplo prático
 
 ```go
