@@ -1,18 +1,25 @@
 
 # goAgent
-IA Agent implementation in Go lang
+Implementação **bare bones** de agentes de IA utilizando a linguagem go.
 
 ## Sobre o projeto
-O goAgent é uma implementação de um agente de IA desenvolvida em Go. Ele possui diversas ferramentas que podem ser utilizadas para interagir com sistemas de arquivos, automatizar tarefas ou estender funcionalidades de acordo com as necessidades dos usuários.
+O goAgent é uma implementação de um agente de IA desenvolvida em Go, sem auxilio de nenhum SDK externo. Ele possui diversas ferramentas que podem ser utilizadas para interagir com sistemas de arquivos, automatizar tarefas ou estender funcionalidades de acordo com as necessidades dos usuários. O objetivo principal é entender o funcionamento de um agente com acesso a ferramentas. Esse conteúdo é baseado no artigo https://ampcode.com/how-to-build-an-agent que implementa um agente usando o SDK do Claude. 
+
+Aqui, focaremos em modelos da OpenAI e Gemini, por enquanto. Porém, a implementação é feita sem auxilio dos SDK dos provedores.
 
 ## Como contribuir
 Quer contribuir com novas ferramentas ou melhorar o projeto? Sinta-se à vontade para criar novas funcionalidades ou oferecer sugestões. Para isso, adicione suas ferramentas na pasta *tools* e envie suas contribuições através de um pull request. Sempre que possível, documente bem suas implementações para facilitar a integração com o projeto principal.
 
 ## Usando
 Defina sua chave API OpenAI ou Gemini.
+
 ```bash
 export GEMINI_API_KEY=.....
 export OPENAI_API_KEY=.....
+```
+ou fish
+```fish
+set -x GEMINI_API_KEY ......
 ```
 
 ```bash
@@ -20,8 +27,10 @@ go mod tidy
 go run main.go
 go run main.go -model openai
 go run main.go -model gemini
-
 ```
+
+Obs: o modelo gemini é o flash e o modelo da OpenAI é o gpt-4.1-nano, ambos modelos bem economicos. É possível utilizar o Gemini de forma gratuíta gerando uma chave em https://aistudio.google.com/apikey
+
 ## Como criar uma nova ferramenta
 
 Para criar uma nova ferramenta, siga os passos abaixo:
@@ -65,3 +74,16 @@ Quando fizer sentido, o agente usará a nova função `GreetToolAdapter.Execute(
 ```
 "Olá, Carlos!"
 ```
+
+## Observação
+Esse README foi gerado quase integralmente através das ferramentas disponíveis no agente.
+![image](https://github.com/user-attachments/assets/3d0df82b-51ba-4b02-9992-e676ac099dd0)
+
+## Roadmap
+[ ] Mais modelos ou routers
+[ ] Especificar modelo no args (gpt-4o, etc)
+[ ] Adicionar mais ferramentas
+[ ] Remover arquivos ocultos da leitura ou colocar um .agentigore
+[ ] Melhorar a interação e leitura para edição em partes específicas dos arquivos/textos.
+[ ] Paramêtro para ajustar o quanto o modelo vai pedir confirmações para ações (human in the loop)
+[ ] ....
