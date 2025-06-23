@@ -30,6 +30,13 @@ go run main.go -model gemini
 
 Obs: o modelo gemini é o flash e o modelo da OpenAI é o gpt-4.1-nano, ambos modelos bem economicos. É possível utilizar o Gemini de forma gratuíta gerando uma chave em https://aistudio.google.com/apikey
 
+## Ferramentas disponíveis
+
+É possível verificar as ferramentas disponíveis perguntando ao agente. As ferramentas estão localizadas em /tools com uma arquitetura hexagonal de ports/adapters isolando a lógica de interação com o agente.
+
+![image](https://github.com/user-attachments/assets/001025f1-716e-4659-94af-bd4d088dc44d)
+
+
 ## Como criar uma nova ferramenta
 
 Para criar uma nova ferramenta, siga os passos abaixo:
