@@ -8,6 +8,20 @@ O goAgent é uma implementação de um agente de IA desenvolvida em Go. Ele poss
 ## Como contribuir
 Quer contribuir com novas ferramentas ou melhorar o projeto? Sinta-se à vontade para criar novas funcionalidades ou oferecer sugestões. Para isso, adicione suas ferramentas na pasta *tools* e envie suas contribuições através de um pull request. Sempre que possível, documente bem suas implementações para facilitar a integração com o projeto principal.
 
+## Usando
+Defina sua chave API OpenAI ou Gemini.
+```bash
+export GEMINI_API_KEY=.....
+export OPENAI_API_KEY=.....
+```
+
+```bash
+go mod tidy
+go run main.go
+go run main.go -model openai
+go run main.go -model gemini
+
+```
 ## Como criar uma nova ferramenta
 
 Para criar uma nova ferramenta, siga os passos abaixo:
