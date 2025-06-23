@@ -90,6 +90,8 @@ Esse README foi gerado quase integralmente através das ferramentas disponíveis
 
 [ ] Mais modelos ou routers
 
+[ ] Expandir testes e abordagem TDD
+
 [ ] Especificar modelo no args (gpt-4o, etc)
 
 [ ] Adicionar mais ferramentas
