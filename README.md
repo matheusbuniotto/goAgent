@@ -92,4 +92,6 @@ Esse README foi gerado quase integralmente através das ferramentas disponíveis
 
 [ ] Paramêtro para ajustar o quanto o modelo vai pedir confirmações para ações (human in the loop)
 
+[ ] Ferramenta otimizada para criar novas ferramentas para o modelo 🔁
+
 [ ] ....
