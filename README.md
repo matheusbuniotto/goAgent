@@ -26,8 +26,9 @@ set -x GEMINI_API_KEY ......
 ```bash
 go mod tidy
 go run main.go
+```
 ```bash
-// Especifique o modelo, se preferir
+// Especifique o provedor, se preferir
 go run main.go -model openai
 go run main.go -model gemini
 ```
