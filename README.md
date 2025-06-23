@@ -76,14 +76,20 @@ Quando fizer sentido, o agente usará a nova função `GreetToolAdapter.Execute(
 ```
 
 ## Observação
-Esse README foi gerado quase integralmente através das ferramentas disponíveis no agente.
-![image](https://github.com/user-attachments/assets/3d0df82b-51ba-4b02-9992-e676ac099dd0)
+Esse README foi gerado quase integralmente através das ferramentas disponíveis no agente, self made README.md 🤣
 
 ## Roadmap
+
 [ ] Mais modelos ou routers
+
 [ ] Especificar modelo no args (gpt-4o, etc)
+
 [ ] Adicionar mais ferramentas
+
 [ ] Remover arquivos ocultos da leitura ou colocar um .agentigore
+
 [ ] Melhorar a interação e leitura para edição em partes específicas dos arquivos/textos.
+
 [ ] Paramêtro para ajustar o quanto o modelo vai pedir confirmações para ações (human in the loop)
+
 [ ] ....
