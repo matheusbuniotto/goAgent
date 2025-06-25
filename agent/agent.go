@@ -3,14 +3,9 @@
 package agent
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"regexp"
-	"time"
 )
 
 // =================================================================================================
@@ -35,7 +30,24 @@ type LLMClient interface {
 	GenerateResponse(ctx context.Context, history []Message, tools []Tool) (string, error)
 }
 
-// =================================================================================================
+// BuildSystemPrompt cria o prompt do sistema que instrui o LLM.
+func BuildSystemPrompt(tools []Tool) string {
+	prompt := `Você é GoAgent, um assistente que pode usar ferramentas para interagir com o sistema do usuário.
+		Para usar uma ferramenta, você **DEVE responder EXATAMENTE** no seguinte formato: TOOL_CALL: ToolName({"arg_name": "value", "another_arg": "value"})
+		### IMPORTANTE: Os argumentos da ferramenta **DEVEM ser um objeto JSON válido**.
+		Se uma ferramenta não requer argumentos, use um objeto JSON vazio: TOOL_CALL: ToolName({})
+		As ferramentas disponíveis estão listadas abaixo com sua descrição:
+`
+
+	for _, tool := range tools {
+		prompt += fmt.Sprintf("- Ferramenta: %s\n  Descrição: %s\n", tool.Name(), tool.Description())
+	}
+
+	prompt += "\nDepois que uma ferramenta for chamada, eu fornecerei o resultado, e então você deve responder à pergunta original do usuário com base nesse resultado. Se você puder responder diretamente sem ferramentas, faça."
+	return prompt
+}
+
+// ** ================================================================================================= **
 // Implementação do Agente
 // =================================================================================================
 
@@ -120,192 +132,4 @@ func (a *Agent) Run(ctx context.Context, getUserInput func() (string, bool)) err
 		}
 	}
 	return nil
-}
-
-// buildSystemPrompt cria o prompt do sistema que instrui o LLM.
-func buildSystemPrompt(tools []Tool) string {
-	prompt := `Você é GoAgent, um assistente que pode usar ferramentas para interagir com o sistema do usuário.
-		Para usar uma ferramenta, você **DEVE responder EXATAMENTE** no seguinte formato: TOOL_CALL: ToolName({"arg_name": "value", "another_arg": "value"})
-		### IMPORTANTE: Os argumentos da ferramenta **DEVEM ser um objeto JSON válido**.
-		Se uma ferramenta não requer argumentos, use um objeto JSON vazio: TOOL_CALL: ToolName({})
-		As ferramentas disponíveis estão listadas abaixo com sua descrição:
-`
-
-	for _, tool := range tools {
-		prompt += fmt.Sprintf("- Ferramenta: %s\n  Descrição: %s\n", tool.Name(), tool.Description())
-	}
-
-	prompt += "\nDepois que uma ferramenta for chamada, eu fornecerei o resultado, e então você deve responder à pergunta original do usuário com base nesse resultado. Se você puder responder diretamente sem ferramentas, faça."
-	return prompt
-}
-
-// ** ================================================================================================= **
-// Implementações do Cliente LLM
-// ** ================================================================================================= **
-
-// Cliente OpenAI
-
-type openAIClient struct {
-	apiKey     string
-	httpClient *http.Client
-}
-
-type openAIRequest struct {
-	Model     string    `json:"model"`
-	Messages  []Message `json:"messages"`
-	MaxTokens int       `json:"max_tokens,omitempty"`
-}
-
-type openAIResponse struct {
-	Choices []struct {
-		Message Message `json:"message"`
-	} `json:"choices"`
-}
-
-func NewOpenAIClient(apiKey string) LLMClient {
-	return &openAIClient{
-		apiKey:     apiKey,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
-	}
-}
-
-func (c *openAIClient) GenerateResponse(ctx context.Context, history []Message, tools []Tool) (string, error) {
-	systemPrompt := buildSystemPrompt(tools)
-	messages := []Message{{Role: "system", Content: systemPrompt}}
-	messages = append(messages, history...)
-
-	reqBody, err := json.Marshal(openAIRequest{
-		Model:     "gpt-4.1-nano",
-		Messages:  messages,
-		MaxTokens: 4096,
-	})
-	if err != nil {
-		return "", fmt.Errorf("erro ao codificar requisição para OpenAI: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(reqBody))
-	if err != nil {
-		return "", fmt.Errorf("erro ao criar requisição para OpenAI: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("erro ao enviar requisição para OpenAI: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("API da OpenAI retornou status não-OK: %s, Body: %s", resp.Status, string(bodyBytes))
-	}
-
-	var openAIResp openAIResponse
-	if err := json.NewDecoder(resp.Body).Decode(&openAIResp); err != nil {
-		return "", fmt.Errorf("erro ao decodificar resposta da OpenAI: %w", err)
-	}
-
-	if len(openAIResp.Choices) == 0 {
-		return "", fmt.Errorf("resposta da OpenAI não contém escolhas")
-	}
-
-	return openAIResp.Choices[0].Message.Content, nil
-}
-
-// --- Cliente Google Gemini ---
-type geminiClient struct {
-	apiKey     string
-	httpClient *http.Client
-}
-
-type geminiRequest struct {
-	Contents         []geminiContent `json:"contents"`
-	GenerationConfig geminiGenConfig `json:"generationConfig"`
-}
-type geminiContent struct {
-	Role  string       `json:"role"`
-	Parts []geminiPart `json:"parts"`
-}
-type geminiPart struct {
-	Text string `json:"text"`
-}
-type geminiGenConfig struct {
-	MaxOutputTokens int `json:"maxOutputTokens"`
-}
-type geminiResponse struct {
-	Candidates []struct {
-		Content geminiContent `json:"content"`
-	} `json:"candidates"`
-}
-
-func NewGeminiClient(apiKey string) LLMClient {
-	return &geminiClient{
-		apiKey:     apiKey,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
-	}
-}
-
-func (c *geminiClient) GenerateResponse(ctx context.Context, history []Message, tools []Tool) (string, error) {
-	systemPrompt := buildSystemPrompt(tools)
-	fullPrompt := systemPrompt + "\n\nAqui está o histórico da conversa:\n"
-
-	var geminiContents []geminiContent
-	geminiContents = append(geminiContents, geminiContent{
-		Role:  "user",
-		Parts: []geminiPart{{Text: fullPrompt}},
-	})
-	geminiContents = append(geminiContents, geminiContent{
-		Role:  "model",
-		Parts: []geminiPart{{Text: "Entendido. Estou pronto para ajudar."}},
-	})
-
-	for _, msg := range history {
-		role := "user"
-		if msg.Role == "assistant" || msg.Role == "model" {
-			role = "model"
-		}
-		geminiContents = append(geminiContents, geminiContent{
-			Role:  role,
-			Parts: []geminiPart{{Text: msg.Content}},
-		})
-	}
-
-	reqBody, err := json.Marshal(geminiRequest{
-		Contents:         geminiContents,
-		GenerationConfig: geminiGenConfig{MaxOutputTokens: 8192},
-	})
-	if err != nil {
-		return "", fmt.Errorf("erro ao codificar requisição para Gemini: %w", err)
-	}
-
-	apiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=%s", c.apiKey)
-	req, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewBuffer(reqBody))
-	if err != nil {
-		return "", fmt.Errorf("erro ao criar requisição para Gemini: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("erro ao enviar requisição para Gemini: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("API do Gemini retornou status não-OK: %s, Body: %s", resp.Status, string(bodyBytes))
-	}
-
-	var geminiResp geminiResponse
-	if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
-		return "", fmt.Errorf("erro ao decodificar resposta do Gemini: %w", err)
-	}
-
-	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
-		return "", fmt.Errorf("resposta do Gemini está vazia ou em formato inesperado")
-	}
-
-	return geminiResp.Candidates[0].Content.Parts[0].Text, nil
 }

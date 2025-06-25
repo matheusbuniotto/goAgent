@@ -10,6 +10,7 @@ import (
 	"log"
 
 	"github.com/matheusbuniotto/goagent/agent"
+	"github.com/matheusbuniotto/goagent/llmclients"
 	"github.com/matheusbuniotto/goagent/tools"
 )
 
@@ -22,7 +23,7 @@ func main() {
 	openaiAPIKey := os.Getenv("OPENAI_API_KEY")
 	geminiAPIKey := os.Getenv("GEMINI_API_KEY")
 
-	var llmClient agent.LLMClient
+	var llmClient llmclients.LLMClient
 
 	// A prioridade é o flag da linha de comando -model
 	switch *model {
@@ -31,24 +32,24 @@ func main() {
 			log.Fatal("\u001b[91mErro: Modelo 'gemini' especificado, mas a chave GEMINI_API_KEY não foi encontrada.\u001b[0m")
 		}
 		fmt.Println("\u001b[92mUsando cliente Google Gemini (especificado via flag).\u001b[0m")
-		llmClient = agent.NewGeminiClient(geminiAPIKey)
+		llmClient = llmclients.NewGeminiClient(geminiAPIKey)
 
 	case "openai":
 		if openaiAPIKey == "" {
 			log.Fatal("\u001b[91mErro: Modelo 'openai' especificado, mas a chave OPENAI_API_KEY não foi encontrada.\u001b[0m")
 		}
 		fmt.Println("\u001b[92mUsando cliente OpenAI (especificado via flag).\u001b[0m")
-		llmClient = agent.NewOpenAIClient(openaiAPIKey)
+		llmClient = llmclients.NewOpenAIClient(openaiAPIKey)
 
 	case "":
 		// Se NENHUM flag for passado, usa gemini por padrão a não ser que não esteja definido.
 		fmt.Println("\u001b[92mNenhum modelo especificado, detectando automaticamente por chave de API...\u001b[0m")
 		if geminiAPIKey != "" {
 			fmt.Println("\u001b[92mUsando cliente Google Gemini.\u001b[0m")
-			llmClient = agent.NewGeminiClient(geminiAPIKey)
+			llmClient = llmclients.NewGeminiClient(geminiAPIKey)
 		} else if openaiAPIKey != "" {
 			fmt.Println("\u001b[92mUsando cliente OpenAI.\u001b[0m")
-			llmClient = agent.NewOpenAIClient(openaiAPIKey)
+			llmClient = llmclients.NewOpenAIClient(openaiAPIKey)
 		} else {
 			log.Fatal("\u001b[91mErro: Nenhuma chave de API encontrada. Por favor, defina OPENAI_API_KEY ou GEMINI_API_KEY.\u001b[0m")
 		}
