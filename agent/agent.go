@@ -87,7 +87,7 @@ func (a *Agent) Run(ctx context.Context, getUserInput func() (string, bool)) err
 		a.history = append(a.history, Message{Role: "user", Content: userInput})
 
 		for {
-			fmt.Println("\u001b[90mGoAgent está pensando...\u001b[0m")
+			fmt.Println("\u001b[90mGoAgent está processando a mensagem...\u001b[0m")
 			allTools := make([]Tool, 0, len(a.tools))
 			for _, t := range a.tools {
 				allTools = append(allTools, t)

@@ -51,7 +51,7 @@ func (c *openAIClient) GenerateResponse(ctx context.Context, history []Message, 
 	reqBody, err := json.Marshal(openAIRequest{
 		Model:     "gpt-4.1-nano",
 		Messages:  messages,
-		MaxTokens: 4096,
+		MaxTokens: 9060,
 	})
 	if err != nil {
 		return "", fmt.Errorf("erro ao codificar requisição para OpenAI: %w", err)
