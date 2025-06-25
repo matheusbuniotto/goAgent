@@ -71,7 +71,7 @@ func (c *geminiClient) GenerateResponse(ctx context.Context, history []agent.Mes
 
 	reqBody, err := json.Marshal(geminiRequest{
 		Contents:         geminiContents,
-		GenerationConfig: geminiGenConfig{MaxOutputTokens: 8192},
+		GenerationConfig: geminiGenConfig{MaxOutputTokens: 10000},
 	})
 	if err != nil {
 		return "", fmt.Errorf("erro ao codificar requisição para Gemini: %w", err)
