@@ -95,6 +95,7 @@ Quando fizer sentido, o agente usará a nova função `GreetToolAdapter.Execute(
 Esse README foi gerado quase integralmente através das ferramentas disponíveis no agente, self made README.md 🤣
 
 ## Roadmap
+[ ] Makefile
 
 [ ] Mais modelos ou routers
 
