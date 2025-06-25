@@ -60,28 +60,38 @@ Para criar uma nova ferramenta, siga os passos abaixo:
 ### Exemplo prático
 
 ```go
-// Função que implementa a lógica da ferramenta
-func GreetTool(input json.RawMessage) (string, error) {
-    var args struct {
-        Name string `json:"name"`
-    }
-    if err := json.Unmarshal(input, &args); err != nil {
-        return "", err
-    }
-    return fmt.Sprintf("Olá, %s!", args.Name), nil
+// ::: Ferramenta: CreateDirectory :::
+type CreateDirectoryInput struct {
+	Path string `json:"path"`
 }
 
-// Criando a definição da ferramenta
-var GreetDefinition = tools.ToolDefinition{
-    Name:        "greet",
-    Description: "Retorna uma saudação personalizada.",
-    Function:    GreetTool,
+// Definindo a função
+func createDirectory(input json.RawMessage) (string, error) {
+	var typedInput CreateDirectoryInput
+	if err := json.Unmarshal(input, &typedInput); err != nil {
+		return "", fmt.Errorf("JSON inválido para argumentos: %w", err)
+	}
+
+	if typedInput.Path == "" {
+		return "", fmt.Errorf("argumento inválido. 'path' é obrigatório")
+	}
+
+	// 0755 são as permissões = leitura/execução para todos, escrita para o dono
+	err := os.MkdirAll(typedInput.Path, 0755)
+	if err != nil {
+		return "", fmt.Errorf("erro ao criar o diretório '%s': %w", typedInput.Path, err)
+	}
+
+	return fmt.Sprintf("Diretório '%s' criado com sucesso.", typedInput.Path), nil
 }
 
-// Criando o adaptador
-var GreetToolAdapter = tools.ToolAdapter{
-    Definition: GreetDefinition,
+// cria a definição da nova ferramenta
+var CreateDirectoryDef = ToolDefinition{
+	Name:        "create_directory",
+	Description: `Cria um novo diretório no caminho especificado, necessita de um nome. Exemplo: {"path": "meu/novo/nome_diretorio"}`, //muito importante para comunicar com o agente.
+	Function:    createDirectory,
 }
+
 ```
 
 ### Como usar
