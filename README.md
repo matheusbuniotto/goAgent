@@ -95,10 +95,15 @@ var CreateDirectoryDef = ToolDefinition{
 ```
 
 ### Como usar
-Quando fizer sentido, o agente usará a nova função `GreetToolAdapter.Execute('{"name": "Carlos"}')`, retornando:
+Quando fizer sentido, o agente usará a nova ferramenta `createDirectory{path}`, realizando a criação da pasta no local específicado:
 
 ```
-"Olá, Carlos!"
+Humano: crie uma pasta chamada pasta-nova-teste
+GoAgent está processando a mensagem...
+GoAgent quer usar a ferramenta: create_directory({"path": "pasta-nova-teste"})
+Resultado da ferramenta: Diretório 'pasta-nova-teste' criado com sucesso.
+GoAgent está processando a mensagem...
+GoAgent: OK. A pasta "pasta-nova-teste" foi criada com sucesso.
 ```
 
 ## Observação
