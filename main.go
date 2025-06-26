@@ -15,13 +15,15 @@ import (
 )
 
 func main() {
-	// O valor padrão "" significa que o flag não foi usado.
-	model := flag.String("model", "", "O provedor a ser usado para o agente (gemini ou openai). Sobrepõe a detecção automática.")
-	flag.Parse()
-
 	// Carrega chaves de API de variáveis de ambiente.
 	openaiAPIKey := os.Getenv("OPENAI_API_KEY")
 	geminiAPIKey := os.Getenv("GEMINI_API_KEY")
+
+	// O valor padrão "" significa que o flag não foi usado.
+	model := flag.String("model", "", "O provedor a ser usado para o agente (gemini ou openai). Sobrepõe a detecção automática.")
+	// Novo: permite selecionar o ReasoningAgent
+	agentType := flag.String("agent", "default", "Tipo de agente: default ou reasoning")
+	flag.Parse()
 
 	var llmClient llmclients.LLMClient
 
@@ -67,8 +69,16 @@ func main() {
 		&tools.ToolAdapter{Definition: tools.AskHumanDef},
 	}
 
-	// Inicializa o agente
-	theAgent := agent.NewAgent(llmClient, allTools)
+	// Inicializa o agente correto
+	var theAgent interface {
+		Run(context.Context, func() (string, bool)) error
+	}
+	if *agentType == "reasoning" || *agentType == "r" {
+		theAgent = agent.WithRunWithReasoning(agent.NewAgent(llmClient, allTools))
+		fmt.Println("\u001b[92mModo Reasoning ativado.\u001b[0m")
+	} else {
+		theAgent = agent.NewAgent(llmClient, allTools)
+	}
 
 	// Prepara a função para ler o input
 	scanner := bufio.NewScanner(os.Stdin)
