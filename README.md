@@ -28,6 +28,9 @@ go run main.go
 // Especifique o provedor, se preferir
 go run main.go -model openai
 go run main.go -model gemini
+
+// NOVO: especifique se o modelo tem acesso ao reasoning 
+go run main.go --agent reasoning 
 ```
 
 Obs: o modelo gemini é o flash e o modelo da OpenAI é o gpt-4.1-nano, ambos modelos bem economicos. É possível utilizar o Gemini de forma gratuíta gerando uma chave em https://aistudio.google.com/apikey
@@ -38,6 +41,8 @@ Obs: o modelo gemini é o flash e o modelo da OpenAI é o gpt-4.1-nano, ambos mo
 ## Ferramentas disponíveis
 
 É possível verificar as ferramentas disponíveis perguntando ao agente. As ferramentas estão localizadas em /tools com uma arquitetura hexagonal de ports/adapters isolando a lógica de interação com o agente.
+
+**NOVO**: Modo reasoning (think), implementa lógica de racicionio para enriquecer o contexto.
 
 ![image](https://github.com/user-attachments/assets/001025f1-716e-4659-94af-bd4d088dc44d)
 
