@@ -42,9 +42,11 @@ Obs: o modelo gemini é o flash e o modelo da OpenAI é o gpt-4.1-nano, ambos mo
 
 É possível verificar as ferramentas disponíveis perguntando ao agente. As ferramentas estão localizadas em /tools com uma arquitetura hexagonal de ports/adapters isolando a lógica de interação com o agente.
 
-**NOVO**: Modo reasoning (think), implementa lógica de racicionio para enriquecer o contexto.
 
 ![image](https://github.com/user-attachments/assets/001025f1-716e-4659-94af-bd4d088dc44d)
+
+**NOVO**: Modo reasoning (think), implementa lógica de racicionio para enriquecer o contexto.
+
 
 ## Como contribuir
 Quer contribuir com novas ferramentas ou melhorar o projeto? Sinta-se à vontade para criar novas funcionalidades ou oferecer sugestões. Para isso, adicione suas ferramentas na pasta *tools* e envie suas contribuições através de um pull request. Sempre que possível, documente bem suas implementações para facilitar a integração com o projeto principal.

@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/matheusbuniotto/goagent/prompts"
+	"github.com/matheusbuniotto/goagent/agent/prompts"
 )
 
 // =================================================================================================
