@@ -148,10 +148,10 @@ func (a *Agent) RunWithReasoning(ctx context.Context, getUserInput func() (strin
 			continue
 		}
 		if reasoning != "" {
-			fmt.Println("\u001b[96mRaciocínio do modelo:\u001b[0m")
+			fmt.Println("\u001b[96mRaciocínio do agente:\u001b[0m")
 			fmt.Println(reasoning)
 			// Adiciona o raciocínio ao histórico como mensagem de sistema
-			a.history = append(a.history, Message{Role: "system", Content: "Raciocínio do modelo:\n" + reasoning})
+			a.history = append(a.history, Message{Role: "system", Content: "Raciocínio para solução:\n" + reasoning})
 		}
 
 		// 2. Adiciona a pergunta do usuário
@@ -201,7 +201,7 @@ func (a *Agent) RunWithReasoning(ctx context.Context, getUserInput func() (strin
 	return nil
 }
 
-// GenerateReasoningTrace generates a reasoning trace for a given user input using the LLM and returns the extracted <think> steps as a string.
+// GenerateReasoningTrace gera um trace de raciocínio para uma determinada entrada do usuário usando o LLM e retorna as etapas <think> extraido como string
 func GenerateReasoningTrace(ctx context.Context, llmClient LLMClient, userInput string, history []Message, tools []Tool) (string, error) {
 	// Constroi o raciocínio + prompt + mensagens do histórico
 	messages := append([]Message{{Role: "system", Content: prompts.ReasoningPrompt}}, history...)
