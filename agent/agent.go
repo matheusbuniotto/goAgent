@@ -41,6 +41,15 @@ func BuildSystemPrompt(tools []Tool) string {
 	return prompt
 }
 
+// BuildReasoningPrompt cria o prompt de raciocínio que instrui o LLM.
+func BuildReasoningPrompt(tools []Tool) string {
+	prompt := prompts.ReasoningPrompt + "\n"
+	for _, tool := range tools {
+		prompt += fmt.Sprintf("- Ferramenta: %s\n  Descrição: %s\n", tool.Name(), tool.Description())
+	}
+	return prompt
+}
+
 // ** ================================================================================================= **
 // Implementação do Agente
 // =================================================================================================
@@ -131,7 +140,7 @@ func (a *Agent) Run(ctx context.Context, getUserInput func() (string, bool)) err
 // RunWithReasoning executa o agente "padrão", mas antes insere um raciocínio gerado no histórico.
 func (a *Agent) RunWithReasoning(ctx context.Context, getUserInput func() (string, bool)) error {
 	for {
-		fmt.Print("\u001b[94mHumano\u001b[0m: ")
+		fmt.Print("\u001b[94mHumano\u001b[0m: ") // Garante o mesmo prompt do modo regular
 		userInput, ok := getUserInput()
 		if !ok {
 			break
@@ -203,8 +212,9 @@ func (a *Agent) RunWithReasoning(ctx context.Context, getUserInput func() (strin
 
 // GenerateReasoningTrace gera um trace de raciocínio para uma determinada entrada do usuário usando o LLM e retorna as etapas <think> extraido como string
 func GenerateReasoningTrace(ctx context.Context, llmClient LLMClient, userInput string, history []Message, tools []Tool) (string, error) {
-	// Constroi o raciocínio + prompt + mensagens do histórico
-	messages := append([]Message{{Role: "system", Content: prompts.ReasoningPrompt}}, history...)
+	// Usa o novo BuildReasoningPrompt para incluir ferramentas
+	reasoningPrompt := BuildReasoningPrompt(tools)
+	messages := append([]Message{{Role: "system", Content: reasoningPrompt}}, history...)
 	messages = append(messages, Message{Role: "user", Content: userInput})
 	llmResponse, err := llmClient.GenerateResponse(ctx, messages, tools)
 	if err != nil {

@@ -71,7 +71,7 @@ func writeFile(input json.RawMessage) (string, error) {
 		return "", fmt.Errorf("JSON inválido para argumentos: %w", err)
 	}
 
-	if typedInput.Path == "" || typedInput.Content == "" {
+	if typedInput.Path == "" {
 		return "", fmt.Errorf("argumentos inválidos. 'path' e 'content' são obrigatórios")
 	}
 
