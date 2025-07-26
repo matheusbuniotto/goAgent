@@ -106,7 +106,7 @@ func main() {
 			log.Fatal("\u001b[91mErro: OpenRouter selecionado, mas a chave OPENROUTER_API_KEY não foi encontrada.\u001b[0m")
 		}
 		fmt.Println("\u001b[92m✅ Usando cliente OpenRouter\u001b[0m")
-		// Se OpenRouter for escolhido, pergunta qual modelo usar
+		// Se OpenRouter for escolhido, sempre pergunta qual modelo usar
 		selectedModel := llm.SelectOpenRouterModel()
 		llmClient = llm.NewOpenRouterClientWithModel(openrouterAPIKey, selectedModel)
 
@@ -114,7 +114,9 @@ func main() {
 		// Fallback para auto-detecção se seleção interativa falhou
 		if openrouterAPIKey != "" {
 			fmt.Println("\u001b[92m✅ Usando cliente OpenRouter (auto-detectado)\u001b[0m")
-			llmClient = llm.NewOpenRouterClient(openrouterAPIKey)
+			// Quando auto-detectado, também permite escolher o modelo
+			selectedModel := llm.SelectOpenRouterModel()
+			llmClient = llm.NewOpenRouterClientWithModel(openrouterAPIKey, selectedModel)
 		} else if geminiAPIKey != "" {
 			fmt.Println("\u001b[92m✅ Usando cliente Google Gemini (auto-detectado)\u001b[0m")
 			llmClient = llm.NewGeminiClient(geminiAPIKey)
