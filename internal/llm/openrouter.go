@@ -25,19 +25,18 @@ type OpenRouterModel struct {
 }
 
 var PredefinedModels = []OpenRouterModel{
-	{"openai/gpt-4o-mini", "GPT-4o Mini", "Modelo econômico da OpenAI", "Baixo"},
-	{"openai/gpt-4o", "GPT-4o", "Modelo avançado da OpenAI", "Médio"},
-	{"anthropic/claude-3.5-sonnet", "Claude 3.5 Sonnet", "Modelo avançado da Anthropic", "Médio"},
-	{"google/gemini-pro-1.5", "Gemini Pro 1.5", "Modelo avançado do Google", "Médio"},
+	{"openai/gpt-4.1-nano", "GPT-4.1 Nano", "Modelo econômico da OpenAI", "Baixo"},
+	{"openai/gpt-4.1", "GPT-4.1", "Modelo avançado da OpenAI", "Médio"},
+	{"anthropic/claude-3.7-sonnet", "Claude 3.7 Sonnet", "Modelo avançado da Anthropic", "Médio"},
+	{"google/gemini-2.5-flash", "Gemini 2.5", "Modelo avançado do Google", "Médio"},
+	{"google/gemini-2.5-flash-lite", "Gemini 2.5 Lite", "Modelo mais barato do Google", "Baixo"},
 	{"meta-llama/llama-3.1-8b-instruct", "Llama 3.1 8B", "Modelo open source da Meta", "Baixo"},
-	{"anthropic/claude-3-haiku", "Claude 3 Haiku", "Modelo rápido da Anthropic", "Baixo"},
-	{"openai/gpt-3.5-turbo", "GPT-3.5 Turbo", "Modelo clássico da OpenAI", "Baixo"},
-	{"mistralai/mixtral-8x7b-instruct", "Mixtral 8x7B", "Modelo da Mistral AI", "Baixo"},
+	{"meta-llama/llama-3.1-70b-instruct", "Llama 3.1 70B", "Modelo avançado open source da Meta", "Médio"},
 }
 
 // SelectOpenRouterModel permite ao usuário escolher um modelo interativamente
 func SelectOpenRouterModel() string {
-	fmt.Println("\n🤖 Selecione um modelo do OpenRouter:")
+	fmt.Println("\nSelecione um modelo do OpenRouter:")
 	fmt.Println("─────────────────────────────────────")
 	
 	for i, model := range PredefinedModels {
