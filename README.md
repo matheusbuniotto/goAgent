@@ -1,48 +1,95 @@
 # goAgent
-Implementação **bare bones** de agentes de IA utilizando a linguagem go.
+Implementação **bare bones** de agentes de IA utilizando Go com suporte a múltiplos provedores LLM.
 
 ![main-image-gemini-generated](https://github.com/user-attachments/assets/49df3432-b530-481c-bc67-20fadaa0d263)
 
 ## Sobre o projeto
-O goAgent é uma implementação de um agente de IA desenvolvida em Go, sem auxilio de nenhum SDK externo. Ele possui diversas ferramentas que podem ser utilizadas para interagir com sistemas de arquivos, automatizar tarefas ou estender funcionalidades de acordo com as necessidades dos usuários. O objetivo principal é entender o funcionamento de um agente com acesso a ferramentas. Esse conteúdo é baseado no artigo [How to build an Agent](https://ampcode.com/how-to-build-an-agent) que implementa um agente usando o SDK do Claude. 
+O goAgent é uma implementação de um agente de IA desenvolvida em Go, sem auxílio de SDKs externos. Ele possui diversas ferramentas que podem ser utilizadas para interagir com sistemas de arquivos, automatizar tarefas ou estender funcionalidades de acordo com as necessidades dos usuários.
 
-Aqui, focaremos em modelos da OpenAI e Gemini, por enquanto. Porém, a implementação é feita sem auxilio dos SDK dos provedores.
+### 🎯 Características principais:
+- **Múltiplos provedores**: OpenRouter, OpenAI e Gemini
+- **Seleção interativa**: Escolha de provedor e modelo via interface
+- **Modo reasoning**: Capacidade de raciocínio avançado
+- **Arquitetura hexagonal**: Sistema de ferramentas modular
+- **Zero dependências**: Implementação pura sem SDKs externos
 
-## Usando
-Defina sua chave API OpenRouter, OpenAI ou Gemini.
+### 🔗 Provedores suportados:
+- **OpenRouter** (Recomendado): Acesso a GPT-4, Claude, Llama, Gemini e mais
+- **Google Gemini**: Modelo Flash
+- **OpenAI**: GPT-4o-mini e outros modelos
 
+## 🚀 Instalação e Configuração
+
+### 1. Configure sua chave API
 ```bash
-export OPENROUTER_API_KEY=.....  # Recomendado - acesso a múltiplos modelos
-export GEMINI_API_KEY=.....
-export OPENAI_API_KEY=.....
-```
-ou fish
-```fish
-set -x GEMINI_API_KEY ......
+# Escolha um ou mais provedores:
+export OPENROUTER_API_KEY=your_key_here    # Recomendado - múltiplos modelos
+export GEMINI_API_KEY=your_key_here        # Google Gemini
+export OPENAI_API_KEY=your_key_here        # OpenAI GPT
 ```
 
+### 2. Execute o projeto
 ```bash
 go mod tidy
-go run main.go
+go run ./cmd/goagent
 ```
+
+## Modos de Uso
+
+### 🔄 Auto-detecção (Padrão)
 ```bash
-// Especifique o provedor, se preferir
-go run ./cmd/goagent -model openrouter
-go run ./cmd/goagent -model openai
-go run ./cmd/goagent -model gemini
-
-// NOVO: especifique se o modelo tem acesso ao reasoning 
-go run ./cmd/goagent --agent reasoning 
+go run ./cmd/goagent
+# Detecta automaticamente: OpenRouter > Gemini > OpenAI
 ```
 
-Obs: OpenRouter usa gpt-4o-mini por padrão (modelo econômico), o modelo gemini é o flash e o modelo da OpenAI é o gpt-4.1-nano. É possível utilizar o Gemini de forma gratuíta gerando uma chave em https://aistudio.google.com/apikey e o OpenRouter oferece créditos iniciais gratuitos.
+### 📋 Seleção Interativa
+```bash
+go run ./cmd/goagent -select
+# Mostra menu para escolher provedor e modelo
+```
 
-## Arquitetura (até o momento)
+### 🎯 Seleção Direta
+```bash
+go run ./cmd/goagent -model openrouter  # Pergunta qual modelo
+go run ./cmd/goagent -model gemini      # Usa Gemini direto
+go run ./cmd/goagent -model openai      # Usa OpenAI direto
+```
+
+### 🧠 Modo Reasoning
+```bash
+go run ./cmd/goagent --agent reasoning
+# Ativa raciocínio avançado com tags <think>
+```
+
+## 🏗️ Arquitetura
+
+O projeto segue o **layout padrão Go** com arquitetura hexagonal:
+
+```
+goAgent/
+├── cmd/goagent/           # Aplicação principal
+├── pkg/                   # Componentes reutilizáveis
+│   ├── agent/            # Core do agente
+│   └── toolkit/          # Sistema de ferramentas
+├── internal/              # Código privado
+│   ├── llm/              # Clientes LLM (OpenRouter, OpenAI, Gemini)
+│   ├── builtin/          # Ferramentas built-in
+│   └── prompts/          # Definições de prompts
+└── examples/              # Exemplos de uso
+```
+
 ![diagram(1)](https://github.com/user-attachments/assets/b270a0ad-9665-4f94-a0d2-e57995b687f6)
 
-## Ferramentas disponíveis
+## 🛠️ Ferramentas Disponíveis
 
-É possível verificar as ferramentas disponíveis perguntando ao agente. As ferramentas estão localizadas em /tools com uma arquitetura hexagonal de ports/adapters isolando a lógica de interação com o agente.
+O agente possui ferramentas built-in para:
+
+- **📁 Operações de arquivo**: Listar, ler e escrever arquivos
+- **📂 Criação de diretórios**: Criar estruturas de pastas
+- **🤔 Interação humana**: Perguntas diretas ao usuário
+- **🔧 Sistema extensível**: Adicione suas próprias ferramentas facilmente
+
+> 💡 **Dica**: Pergunte ao agente "quais ferramentas você tem disponível?" para ver a lista completa.
 
 
 ![image](https://github.com/user-attachments/assets/001025f1-716e-4659-94af-bd4d088dc44d)
@@ -50,89 +97,80 @@ Obs: OpenRouter usa gpt-4o-mini por padrão (modelo econômico), o modelo gemini
 **NOVO**: Modo reasoning (think), implementa lógica de racicionio para enriquecer o contexto.
 
 
-## Como criar uma nova ferramenta
+## 🔧 Como criar uma nova ferramenta
 
-Para criar uma nova ferramenta, siga os passos abaixo:
+Siga o padrão de arquitetura hexagonal:
 
-1. **Implemente a lógica da sua ferramenta**: Crie uma função que siga o tipo `ToolFunction`. Essa função receberá argumentos como JSON cru (`json.RawMessage`) e retornará uma string ou erro.
-
-2. **Crie a definição da ferramenta**: Instancie uma variável `ToolDefinition` com o nome, descrição e a função criada.
-
-3. **Adapte para o sistema**: Crie um `ToolAdapter` usando a definição criada. Você pode registrar esse adaptador no sistema de ferramentas para que possa ser utilizado pelo agente.
-
-4. **Registre a função no main**: Forneça acesso a ferramenta ao agente no bloco allTools no arquivo main. 
-
-### Exemplo prático
-
+### 1. Defina a estrutura de entrada
 ```go
-// ::: Ferramenta: CreateDirectory :::
-type CreateDirectoryInput struct {
-	Path string `json:"path"`
+// Em internal/builtin/minha_ferramenta.go
+type MinhaFerramentaInput struct {
+    Param1 string `json:"param1"`
+    Param2 int    `json:"param2"`
 }
-
-// Definindo a função
-func createDirectory(input json.RawMessage) (string, error) {
-	var typedInput CreateDirectoryInput
-	if err := json.Unmarshal(input, &typedInput); err != nil {
-		return "", fmt.Errorf("JSON inválido para argumentos: %w", err)
-	}
-
-	if typedInput.Path == "" {
-		return "", fmt.Errorf("argumento inválido. 'path' é obrigatório")
-	}
-
-	// 0755 são as permissões = leitura/execução para todos, escrita para o dono
-	err := os.MkdirAll(typedInput.Path, 0755)
-	if err != nil {
-		return "", fmt.Errorf("erro ao criar o diretório '%s': %w", typedInput.Path, err)
-	}
-
-	return fmt.Sprintf("Diretório '%s' criado com sucesso.", typedInput.Path), nil
-}
-
-// cria a definição da nova ferramenta
-var CreateDirectoryDef = ToolDefinition{
-	Name:        "create_directory",
-	Description: `Cria um novo diretório no caminho especificado, necessita de um nome. Exemplo: {"path": "meu/novo/nome_diretorio"}`, //muito importante para comunicar com o agente.
-	Function:    createDirectory,
-}
-
 ```
 
-### Como usar
-Quando fizer sentido, o agente usará a nova ferramenta `createDirectory{path}`, realizando a criação da pasta no local específicado:
-
+### 2. Implemente a função
+```go
+func minhaFerramenta(input json.RawMessage) (string, error) {
+    var typedInput MinhaFerramentaInput
+    if err := json.Unmarshal(input, &typedInput); err != nil {
+        return "", fmt.Errorf("JSON inválido: %w", err)
+    }
+    
+    // Sua lógica aqui
+    resultado := fmt.Sprintf("Processado: %s", typedInput.Param1)
+    return resultado, nil
+}
 ```
-Humano: crie uma pasta chamada pasta-nova-teste
-GoAgent está processando a mensagem...
-GoAgent quer usar a ferramenta: create_directory({"path": "pasta-nova-teste"})
-Resultado da ferramenta: Diretório 'pasta-nova-teste' criado com sucesso.
-GoAgent está processando a mensagem...
-GoAgent: OK. A pasta "pasta-nova-teste" foi criada com sucesso.
+
+### 3. Crie a definição
+```go
+var MinhaFerramentaDef = toolkit.ToolDefinition{
+    Name:        "minha_ferramenta",
+    Description: "Descrição clara da ferramenta para o agente",
+    Function:    minhaFerramenta,
+}
 ```
 
-## Observação
-Esse README foi gerado quase integralmente através das ferramentas disponíveis no agente, self made README.md 🤣
+### 4. Registre no main
+```go
+// Em cmd/goagent/main.go
+allTools := []agent.Tool{
+    // ... ferramentas existentes
+    &toolkit.ToolAdapter{Definition: builtin.MinhaFerramentaDef},
+}
+``` 
 
-## Roadmap
-[ ] Makefile
+## 🧪 Testes
 
-[ ] Mais modelos ou routers
+```bash
+# Executar todos os testes
+go test ./...
 
-[ ] Expandir testes e abordagem TDD
+# Testes com saída detalhada
+go test -v ./internal/builtin
 
-[ ] Especificar modelo no args (gpt-4o, etc)
+# Construir o projeto
+go build ./cmd/goagent
+```
 
-[ ] Adicionar mais ferramentas
 
-[ ] Remover arquivos ocultos da leitura ou colocar um .agentigore
+## 🗺️ Roadmap
 
-[ ] Melhorar a interação e leitura para edição em partes específicas dos arquivos/textos.
+### ✅ Implementado
+- [x] Suporte múltiplos provedores (OpenRouter, OpenAI, Gemini)
+- [x] Seleção interativa de modelos
+- [x] Arquitetura hexagonal
+- [x] Modo reasoning
+- [x] Layout padrão Go
 
-[ ] Paramêtro para ajustar o quanto o modelo vai pedir confirmações para ações (human in the loop)
-
-[ ] Ferramenta otimizada para criar novas ferramentas para o modelo 🔁
-
-[ ] Traduzir para inglês / repo bilingue 
-
-[ ] ....
+### 🚧 Próximos passos
+- [ ] Makefile para automação
+- [ ] Expandir testes e abordagem TDD
+- [ ] Adicionar mais ferramentas (web, APIs, etc.)
+- [ ] Sistema de plugins
+- [ ] Melhorar interação para edição de arquivos
+- [ ] Configuração de confirmações (human-in-the-loop)
+- [ ] Interface web opcional
+- [ ] Suporte a diferentes formatos de saída
