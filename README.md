@@ -9,9 +9,10 @@ O goAgent é uma implementação de um agente de IA desenvolvida em Go, sem auxi
 Aqui, focaremos em modelos da OpenAI e Gemini, por enquanto. Porém, a implementação é feita sem auxilio dos SDK dos provedores.
 
 ## Usando
-Defina sua chave API OpenAI ou Gemini.
+Defina sua chave API OpenRouter, OpenAI ou Gemini.
 
 ```bash
+export OPENROUTER_API_KEY=.....  # Recomendado - acesso a múltiplos modelos
 export GEMINI_API_KEY=.....
 export OPENAI_API_KEY=.....
 ```
@@ -26,14 +27,15 @@ go run main.go
 ```
 ```bash
 // Especifique o provedor, se preferir
-go run main.go -model openai
-go run main.go -model gemini
+go run ./cmd/goagent -model openrouter
+go run ./cmd/goagent -model openai
+go run ./cmd/goagent -model gemini
 
 // NOVO: especifique se o modelo tem acesso ao reasoning 
-go run main.go --agent reasoning 
+go run ./cmd/goagent --agent reasoning 
 ```
 
-Obs: o modelo gemini é o flash e o modelo da OpenAI é o gpt-4.1-nano, ambos modelos bem economicos. É possível utilizar o Gemini de forma gratuíta gerando uma chave em https://aistudio.google.com/apikey
+Obs: OpenRouter usa gpt-4o-mini por padrão (modelo econômico), o modelo gemini é o flash e o modelo da OpenAI é o gpt-4.1-nano. É possível utilizar o Gemini de forma gratuíta gerando uma chave em https://aistudio.google.com/apikey e o OpenRouter oferece créditos iniciais gratuitos.
 
 ## Arquitetura (até o momento)
 ![diagram(1)](https://github.com/user-attachments/assets/b270a0ad-9665-4f94-a0d2-e57995b687f6)
@@ -46,10 +48,6 @@ Obs: o modelo gemini é o flash e o modelo da OpenAI é o gpt-4.1-nano, ambos mo
 ![image](https://github.com/user-attachments/assets/001025f1-716e-4659-94af-bd4d088dc44d)
 
 **NOVO**: Modo reasoning (think), implementa lógica de racicionio para enriquecer o contexto.
-
-
-## Como contribuir
-Quer contribuir com novas ferramentas ou melhorar o projeto? Sinta-se à vontade para criar novas funcionalidades ou oferecer sugestões. Para isso, adicione suas ferramentas na pasta *tools* e envie suas contribuições através de um pull request. Sempre que possível, documente bem suas implementações para facilitar a integração com o projeto principal.
 
 
 ## Como criar uma nova ferramenta
