@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/matheusbuniotto/goagent/internal/prompts"
 )
@@ -210,26 +211,95 @@ func (a *Agent) RunWithReasoning(ctx context.Context, getUserInput func() (strin
 	return nil
 }
 
-// GenerateReasoningTrace gera um trace de raciocínio para uma determinada entrada do usuário usando o LLM e retorna as etapas <think> extraido como string
+// ReasoningConfig configura parâmetros do reasoning
+type ReasoningConfig struct {
+	MaxTokens     int  // Tokens máximos para reasoning
+	ShowTimestamp bool // Mostrar timestamp no reasoning
+	DetailLevel   int  // 1=básico, 2=médio, 3=detalhado
+}
+
+// DefaultReasoningConfig retorna configuração padrão
+func DefaultReasoningConfig() ReasoningConfig {
+	return ReasoningConfig{
+		MaxTokens:     800,
+		ShowTimestamp: true,
+		DetailLevel:   2,
+	}
+}
+
+// GenerateReasoningTrace gera um trace de raciocínio avançado com extração estruturada
 func GenerateReasoningTrace(ctx context.Context, llmClient LLMClient, userInput string, history []Message, tools []Tool) (string, error) {
-	// Usa o novo BuildReasoningPrompt para incluir ferramentas
+	return GenerateReasoningTraceWithConfig(ctx, llmClient, userInput, history, tools, DefaultReasoningConfig())
+}
+
+// GenerateReasoningTraceWithConfig gera trace com configuração customizada
+func GenerateReasoningTraceWithConfig(ctx context.Context, llmClient LLMClient, userInput string, history []Message, tools []Tool, config ReasoningConfig) (string, error) {
 	reasoningPrompt := BuildReasoningPrompt(tools)
 	messages := append([]Message{{Role: "system", Content: reasoningPrompt}}, history...)
 	messages = append(messages, Message{Role: "user", Content: userInput})
+	
 	llmResponse, err := llmClient.GenerateResponse(ctx, messages, tools)
 	if err != nil {
 		return "", err
 	}
-	// Encontra o que está dentro do think tag
+	
+	// Extrai seções estruturadas do reasoning
+	return extractStructuredReasoning(llmResponse, config), nil
+}
+
+// extractStructuredReasoning extrai e formata o conteúdo do reasoning
+func extractStructuredReasoning(llmResponse string, config ReasoningConfig) string {
+	// Regex para extrair conteúdo <think>
 	re := regexp.MustCompile(`(?s)<think>(.*?)</think>`)
 	matches := re.FindAllStringSubmatch(llmResponse, -1)
-	var trace []string
-	for _, m := range matches {
-		if len(m) > 1 {
-			trace = append(trace, strings.TrimSpace(m[1]))
+	
+	if len(matches) == 0 {
+		return "❌ Nenhum trace de raciocínio encontrado"
+	}
+	
+	var result strings.Builder
+	
+	if config.ShowTimestamp {
+		result.WriteString(fmt.Sprintf("⏰ Reasoning gerado em: %s\n", time.Now().Format("15:04:05")))
+		result.WriteString("─────────────────────────────────────\n")
+	}
+	
+	for i, match := range matches {
+		if len(match) > 1 {
+			reasoning := strings.TrimSpace(match[1])
+			
+			// Destaca seções importantes
+			reasoning = highlightReasoningSections(reasoning)
+			
+			if len(matches) > 1 {
+				result.WriteString(fmt.Sprintf("🧠 Trace %d:\n", i+1))
+			}
+			result.WriteString(reasoning)
+			result.WriteString("\n")
 		}
 	}
-	return strings.Join(trace, "\n"), nil
+	
+	return result.String()
+}
+
+// highlightReasoningSections destaca seções importantes do reasoning
+func highlightReasoningSections(reasoning string) string {
+	// Destaca emojis e seções estruturadas
+	patterns := map[string]string{
+		`🎯 OBJETIVO:`:        "🎯 \033[1;33mOBJETIVO:\033[0m",
+		`📊 ANÁLISE DO CONTEXTO:`: "📊 \033[1;34mANÁLISE DO CONTEXTO:\033[0m",
+		`🛠️ ESTRATÉGIA:`:      "🛠️ \033[1;32mESTRATÉGIA:\033[0m",
+		`⚡ MOMENTO AHA!:`:    "⚡ \033[1;31mMOMENTO AHA!:\033[0m",
+		`🔍 VALIDAÇÃO:`:       "🔍 \033[1;35mVALIDAÇÃO:\033[0m",
+		`🎯 PRÓXIMA AÇÃO:`:    "🎯 \033[1;36mPRÓXIMA AÇÃO:\033[0m",
+	}
+	
+	result := reasoning
+	for pattern, replacement := range patterns {
+		result = strings.ReplaceAll(result, pattern, replacement)
+	}
+	
+	return result
 }
 
 // WithRunWithReasoning retorna um wrapper que implementa Run chamando RunWithReasoning.

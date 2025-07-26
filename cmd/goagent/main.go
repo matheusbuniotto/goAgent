@@ -61,6 +61,9 @@ func main() {
 	model := flag.String("model", "", "O provedor a ser usado para o agente (gemini, openai ou openrouter). Sobrepõe a detecção automática.")
 	// Novo: permite selecionar o ReasoningAgent
 	agentType := flag.String("agent", "default", "Tipo de agente: default ou reasoning")
+	// Configurações de reasoning
+	reasoningDetail := flag.Int("reasoning-detail", 2, "Nível de detalhe do reasoning (1=básico, 2=médio, 3=detalhado)")
+	reasoningTimestamp := flag.Bool("reasoning-timestamp", true, "Mostrar timestamp no reasoning")
 	flag.Parse()
 
 	var llmClient llm.LLMClient
@@ -138,6 +141,8 @@ func main() {
 		&toolkit.ToolAdapter{Definition: builtin.ReadFileDef},
 		&toolkit.ToolAdapter{Definition: builtin.CreateDirectoryDef},
 		&toolkit.ToolAdapter{Definition: builtin.AskHumanDef},
+		&toolkit.ToolAdapter{Definition: builtin.AnalyzeReasoningDef},
+		&toolkit.ToolAdapter{Definition: builtin.ReviewDecisionDef},
 	}
 
 	// Inicializa o agente correto
@@ -146,9 +151,12 @@ func main() {
 	}
 	if *agentType == "reasoning" || *agentType == "r" {
 		theAgent = agent.WithRunWithReasoning(agent.NewAgent(llmClient, allTools))
-		fmt.Println("\u001b[92mModo Reasoning ativado.\u001b[0m")
+		fmt.Printf("\u001b[92mModo Reasoning ativado (detalhe: %d, timestamp: %v).\u001b[0m\n", *reasoningDetail, *reasoningTimestamp)
 	} else {
 		theAgent = agent.NewAgent(llmClient, allTools)
+		// Suprime warning das variáveis não usadas no modo default
+		_ = *reasoningDetail
+		_ = *reasoningTimestamp
 	}
 
 	// Prepara a função para ler o input
