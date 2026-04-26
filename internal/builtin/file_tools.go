@@ -1,10 +1,13 @@
 package builtin
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/matheusbuniotto/goagent/pkg/toolkit"
 )
@@ -147,4 +150,118 @@ var CreateDirectoryDef = toolkit.ToolDefinition{
 	Name:        "create_directory",
 	Description: `Cria um novo diretório no caminho especificado, necessita de um nome. Exemplo: {"path": "meu/novo/nome_diretorio"}`,
 	Function:    createDirectory,
+}
+
+// ::: Ferramenta: GrepSearch :::
+
+// GrepSearchInput define os parâmetros para a função GrepSearch.
+type GrepSearchInput struct {
+	Pattern     string `json:"pattern"`               // Padrão de texto para buscar (literal)
+	Path        string `json:"path,omitempty"`         // Diretório base para a busca (padrão: ".")
+	FilePattern string `json:"file_pattern,omitempty"` // Filtro de nome de arquivo (ex: "*.go")
+	CaseInsensitive bool `json:"case_insensitive,omitempty"` // Ignorar maiúsculas/minúsculas
+}
+
+// grepMatch representa uma linha encontrada na busca.
+type grepMatch struct {
+	File    string `json:"file"`
+	Line    int    `json:"line"`
+	Content string `json:"content"`
+}
+
+func grepSearch(input json.RawMessage) (string, error) {
+	var typedInput GrepSearchInput
+	if err := json.Unmarshal(input, &typedInput); err != nil {
+		return "", fmt.Errorf("JSON inválido para argumentos: %w", err)
+	}
+
+	if typedInput.Pattern == "" {
+		return "", fmt.Errorf("argumento inválido. 'pattern' é obrigatório")
+	}
+
+	searchDir := "."
+	if typedInput.Path != "" {
+		searchDir = typedInput.Path
+	}
+
+	// Compila o padrão de busca
+	pattern := typedInput.Pattern
+	if typedInput.CaseInsensitive {
+		pattern = "(?i)" + pattern
+	}
+
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return "", fmt.Errorf("padrão de busca inválido '%s': %w", typedInput.Pattern, err)
+	}
+
+	var matches []grepMatch
+
+	err = filepath.Walk(searchDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // Pula erros de permissão, etc.
+		}
+
+		// Ignora diretórios
+		if info.IsDir() {
+			// Pula diretórios ocultos (que começam com .)
+			if strings.HasPrefix(info.Name(), ".") && info.Name() != "." {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// Aplica filtro de nome de arquivo, se fornecido
+		if typedInput.FilePattern != "" {
+			matched, err := filepath.Match(typedInput.FilePattern, info.Name())
+			if err != nil || !matched {
+				return nil
+			}
+		}
+
+		// Abre e lê o arquivo linha por linha
+		file, err := os.Open(path)
+		if err != nil {
+			return nil // Pula arquivos que não podem ser abertos
+		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+		lineNum := 0
+		for scanner.Scan() {
+			lineNum++
+			line := scanner.Text()
+			if re.MatchString(line) {
+				matches = append(matches, grepMatch{
+					File:    path,
+					Line:    lineNum,
+					Content: line,
+				})
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return "", fmt.Errorf("erro ao percorrer diretório '%s': %w", searchDir, err)
+	}
+
+	if len(matches) == 0 {
+		return "Nenhum resultado encontrado.", nil
+	}
+
+	result, err := json.Marshal(matches)
+	if err != nil {
+		return "", fmt.Errorf("erro ao serializar resultados: %w", err)
+	}
+
+	return string(result), nil
+}
+
+// GrepSearchDef é a definição pública da ferramenta de busca por padrões em arquivos.
+var GrepSearchDef = toolkit.ToolDefinition{
+	Name:        "grep_search",
+	Description: `Busca um padrão de texto em arquivos dentro de um diretório. Requer um objeto JSON com a chave "pattern". Opcionalmente aceita "path" (diretório base, padrão "."), "file_pattern" (filtro de nome de arquivo, ex: "*.go") e "case_insensitive" (bool). Exemplo: {"pattern": "TODO", "path": "./src", "file_pattern": "*.go"}`,
+	Function:    grepSearch,
 }

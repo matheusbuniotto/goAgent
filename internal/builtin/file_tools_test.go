@@ -348,6 +348,7 @@ func TestInvalidJSON(t *testing.T) {
 		{"listFiles", listFiles},
 		{"readFile", readFile},
 		{"writeFile", writeFile},
+		{"grepSearch", grepSearch},
 	}
 
 	invalidJSON := []byte(`{"invalid": json`)
@@ -365,7 +366,215 @@ func TestInvalidJSON(t *testing.T) {
 	}
 }
 
-// Helper function para verificar se uma string contém outra
+// TestGrepSearch
+func TestGrepSearch(t *testing.T) {
+	testCases := []struct {
+		name           string
+		setupFiles     map[string]string // fileName -> content
+		pattern        string
+		path           string
+		filePattern    string
+		caseInsensitive bool
+		expectErr      bool
+		expectedError  string
+		expectedCount  int // número esperado de matches
+	}{
+		{
+			name:           "Sucesso - Busca padrão em arquivo",
+			setupFiles:     map[string]string{"test.txt": "hello world\nfoo bar\nhello again"},
+			pattern:        "hello",
+			path:           "", // será preenchido com tempDir
+			filePattern:    "",
+			caseInsensitive: false,
+			expectErr:      false,
+			expectedCount:  2,
+		},
+		{
+			name:           "Sucesso - Busca com file_pattern",
+			setupFiles:     map[string]string{"test.go": "func main()", "test.txt": "func other()"},
+			pattern:        "func",
+			path:           "",
+			filePattern:    "*.go",
+			caseInsensitive: false,
+			expectErr:      false,
+			expectedCount:  1,
+		},
+		{
+			name:           "Sucesso - Busca case insensitive",
+			setupFiles:     map[string]string{"test.txt": "Hello World\nhello again"},
+			pattern:        "hello",
+			path:           "",
+			filePattern:    "",
+			caseInsensitive: true,
+			expectErr:      false,
+			expectedCount:  2,
+		},
+		{
+			name:           "Sucesso - Nenhum resultado",
+			setupFiles:     map[string]string{"test.txt": "foo bar"},
+			pattern:        "notfound",
+			path:           "",
+			filePattern:    "",
+			caseInsensitive: false,
+			expectErr:      false,
+			expectedCount:  0,
+		},
+		{
+			name:           "Erro - Padrão vazio",
+			pattern:        "",
+			expectErr:      true,
+			expectedError:  "argumento inválido",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tempDir := t.TempDir()
+
+			// Cria os arquivos de teste
+			for fileName, content := range tc.setupFiles {
+				fullPath := filepath.Join(tempDir, fileName)
+				dir := filepath.Dir(fullPath)
+				if err := os.MkdirAll(dir, 0755); err != nil {
+					t.Fatalf("Falha ao criar diretório: %v", err)
+				}
+				err := os.WriteFile(fullPath, []byte(content), 0644)
+				if err != nil {
+					t.Fatalf("Falha ao criar arquivo de teste: %v", err)
+				}
+			}
+
+			// Prepara o path
+			searchPath := tc.path
+			if searchPath == "" && len(tc.setupFiles) > 0 {
+				searchPath = tempDir
+			}
+
+			// Prepara input JSON
+			inputData := GrepSearchInput{
+				Pattern:         tc.pattern,
+				Path:            searchPath,
+				FilePattern:     tc.filePattern,
+				CaseInsensitive: tc.caseInsensitive,
+			}
+			rawInput, _ := json.Marshal(inputData)
+
+			// Executa a função
+			result, err := grepSearch(rawInput)
+
+			// Verifica erro
+			if (err != nil) != tc.expectErr {
+				t.Fatalf("grepSearch() erro = %v, expectErr %v", err, tc.expectErr)
+			}
+
+			if tc.expectErr && tc.expectedError != "" {
+				if err == nil || !contains(err.Error(), tc.expectedError) {
+					t.Errorf("grepSearch() erro esperado contendo '%s', got '%v'", tc.expectedError, err)
+				}
+				return
+			}
+
+			if !tc.expectErr {
+				if tc.expectedCount == 0 {
+					if result != "Nenhum resultado encontrado." {
+						t.Errorf("grepSearch() resultado = %q, esperado 'Nenhum resultado encontrado.'", result)
+					}
+				} else {
+					var matches []grepMatch
+					if err := json.Unmarshal([]byte(result), &matches); err != nil {
+						t.Fatalf("Falha ao decodificar resultado JSON: %v", err)
+					}
+					if len(matches) != tc.expectedCount {
+						t.Errorf("grepSearch() encontrou %d matches, esperado %d", len(matches), tc.expectedCount)
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestGrepSearchSubdirectory - Testa busca em subdiretórios
+func TestGrepSearchSubdirectory(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Cria estrutura de subdiretórios
+	subDir := filepath.Join(tempDir, "subdir")
+	err := os.MkdirAll(subDir, 0755)
+	if err != nil {
+		t.Fatalf("Falha ao criar subdiretório: %v", err)
+	}
+
+	// Cria arquivos em diretórios diferentes
+	err = os.WriteFile(filepath.Join(tempDir, "root.txt"), []byte("pattern_root"), 0644)
+	if err != nil {
+		t.Fatalf("Falha ao criar arquivo: %v", err)
+	}
+	err = os.WriteFile(filepath.Join(subDir, "sub.txt"), []byte("pattern_sub"), 0644)
+	if err != nil {
+		t.Fatalf("Falha ao criar arquivo: %v", err)
+	}
+
+	// Busca recursiva
+	inputData := GrepSearchInput{Pattern: "pattern", Path: tempDir}
+	rawInput, _ := json.Marshal(inputData)
+
+	result, err := grepSearch(rawInput)
+	if err != nil {
+		t.Fatalf("grepSearch() erro inesperado: %v", err)
+	}
+
+	var matches []grepMatch
+	if err := json.Unmarshal([]byte(result), &matches); err != nil {
+		t.Fatalf("Falha ao decodificar resultado: %v", err)
+	}
+
+	if len(matches) != 2 {
+		t.Errorf("grepSearch() encontrou %d matches, esperado 2", len(matches))
+	}
+}
+
+// TestGrepSearchSkipsHiddenDirs - Testa que diretórios ocultos são ignorados
+func TestGrepSearchSkipsHiddenDirs(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Cria diretório oculto
+	hiddenDir := filepath.Join(tempDir, ".hidden")
+	err := os.MkdirAll(hiddenDir, 0755)
+	if err != nil {
+		t.Fatalf("Falha ao criar diretório oculto: %v", err)
+	}
+
+	// Cria arquivo no diretório oculto
+	err = os.WriteFile(filepath.Join(hiddenDir, "secret.txt"), []byte("pattern_secret"), 0644)
+	if err != nil {
+		t.Fatalf("Falha ao criar arquivo: %v", err)
+	}
+
+	// Cria arquivo no diretório raiz
+	err = os.WriteFile(filepath.Join(tempDir, "visible.txt"), []byte("pattern_visible"), 0644)
+	if err != nil {
+		t.Fatalf("Falha ao criar arquivo: %v", err)
+	}
+
+	inputData := GrepSearchInput{Pattern: "pattern", Path: tempDir}
+	rawInput, _ := json.Marshal(inputData)
+
+	result, err := grepSearch(rawInput)
+	if err != nil {
+		t.Fatalf("grepSearch() erro inesperado: %v", err)
+	}
+
+	var matches []grepMatch
+	if err := json.Unmarshal([]byte(result), &matches); err != nil {
+		t.Fatalf("Falha ao decodificar resultado: %v", err)
+	}
+
+	if len(matches) != 1 {
+		t.Errorf("grepSearch() encontrou %d matches, esperado 1 (diretório oculto deve ser ignorado)", len(matches))
+	}
+}
+
+	// Helper function para verificar se uma string contém outra
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && 
 		   (s == substr || 
