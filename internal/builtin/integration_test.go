@@ -20,6 +20,7 @@ func TestToolDefinitionsIntegration(t *testing.T) {
 		{"WriteFileDef", WriteFileDef},
 		{"ReadFileDef", ReadFileDef},
 		{"CreateDirectoryDef", CreateDirectoryDef},
+		{"GrepSearchDef", GrepSearchDef},
 		{"AskHumanDef", AskHumanDef},
 	}
 

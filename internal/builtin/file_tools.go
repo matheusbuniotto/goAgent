@@ -1,10 +1,13 @@
 package builtin
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/matheusbuniotto/goagent/pkg/toolkit"
 )
@@ -147,4 +150,101 @@ var CreateDirectoryDef = toolkit.ToolDefinition{
 	Name:        "create_directory",
 	Description: `Cria um novo diretório no caminho especificado, necessita de um nome. Exemplo: {"path": "meu/novo/nome_diretorio"}`,
 	Function:    createDirectory,
+}
+
+// ::: Ferramenta: GrepSearch :::
+
+// GrepSearchInput define os parâmetros para a função GrepSearch.
+type GrepSearchInput struct {
+	Pattern string `json:"pattern"`       // Texto ou padrão regex para buscar
+	Path    string `json:"path,omitempty"` // Diretório onde buscar (padrão: ".")
+}
+
+// grepMatch representa uma correspondência encontrada.
+type grepMatch struct {
+	File    string `json:"file"`
+	Line    int    `json:"line"`
+	Content string `json:"content"`
+}
+
+// grepSearch busca um padrão textual em todos os arquivos de um diretório recursivamente.
+// Retorna as correspondências como JSON.
+func grepSearch(input json.RawMessage) (string, error) {
+	var typedInput GrepSearchInput
+	if err := json.Unmarshal(input, &typedInput); err != nil {
+		return "", fmt.Errorf("JSON inválido para argumentos: %w", err)
+	}
+
+	if typedInput.Pattern == "" {
+		return "", fmt.Errorf("argumento inválido. 'pattern' é obrigatório")
+	}
+
+	dir := "."
+	if typedInput.Path != "" {
+		dir = typedInput.Path
+	}
+
+	// Tenta compilar como regex; se falhar, trata como texto literal
+	var re *regexp.Regexp
+	if compiled, err := regexp.Compile(typedInput.Pattern); err == nil {
+		re = compiled
+	} else {
+		// Escapa caracteres especiais para busca literal
+		re = regexp.MustCompile(regexp.QuoteMeta(typedInput.Pattern))
+	}
+
+	var matches []grepMatch
+
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // Ignora erros de permissão, etc.
+		}
+		if info.IsDir() {
+			return nil
+		}
+
+		file, err := os.Open(path)
+		if err != nil {
+			return nil // Ignora arquivos que não pode abrir
+		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+		lineNum := 0
+		for scanner.Scan() {
+			lineNum++
+			line := scanner.Text()
+			if re.MatchString(line) {
+				matches = append(matches, grepMatch{
+					File:    path,
+					Line:    lineNum,
+					Content: strings.TrimSpace(line),
+				})
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return "", fmt.Errorf("erro ao buscar no diretório '%s': %w", dir, err)
+	}
+
+	if len(matches) == 0 {
+		return "Nenhuma correspondência encontrada.", nil
+	}
+
+	result, err := json.Marshal(matches)
+	if err != nil {
+		return "", err
+	}
+
+	return string(result), nil
+}
+
+// GrepSearchDef é a definição pública da ferramenta de busca grep.
+var GrepSearchDef = toolkit.ToolDefinition{
+	Name:        "grep_search",
+	Description: `Busca um padrão textual em todos os arquivos de um diretório recursivamente. Suporta regex. Requer "pattern" e opcionalmente "path". Exemplo: {"pattern": "TODO", "path": "src/"}`,
+	Function:    grepSearch,
 }

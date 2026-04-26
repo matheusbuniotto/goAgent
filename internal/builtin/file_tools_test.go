@@ -348,6 +348,7 @@ func TestInvalidJSON(t *testing.T) {
 		{"listFiles", listFiles},
 		{"readFile", readFile},
 		{"writeFile", writeFile},
+		{"grepSearch", grepSearch},
 	}
 
 	invalidJSON := []byte(`{"invalid": json`)
@@ -362,6 +363,165 @@ func TestInvalidJSON(t *testing.T) {
 				t.Errorf("%s() erro deveria mencionar JSON inválido, got: %v", tc.name, err)
 			}
 		})
+	}
+}
+
+// TestGrepSearch - Testa a função grepSearch
+func TestGrepSearch(t *testing.T) {
+	testCases := []struct {
+		name          string
+		pattern       string
+		path          string
+		files         map[string]string // nome -> conteúdo
+		expectErr     bool
+		expectedError string
+		expectedCount int // número esperado de correspondências (-1 para não verificar)
+	}{
+		{
+			name:          "Sucesso - Encontra padrão em arquivo",
+			pattern:       "TODO",
+			files:         map[string]string{"app.go": "// TODO: fix this"},
+			expectErr:     false,
+			expectedCount: 1,
+		},
+		{
+			name:          "Sucesso - Encontra padrão em múltiplos arquivos",
+			pattern:       "import",
+			files:         map[string]string{"a.go": "import fmt", "b.go": "import os"},
+			expectErr:     false,
+			expectedCount: 2,
+		},
+		{
+			name:          "Sucesso - Múltiplas correspondências no mesmo arquivo",
+			pattern:       "func",
+			files:         map[string]string{"main.go": "func main() {\nfunc helper() {}"},
+			expectErr:     false,
+			expectedCount: 2,
+		},
+		{
+			name:          "Sucesso - Nenhuma correspondência",
+			pattern:       "XYZABC123",
+			files:         map[string]string{"app.go": "package main"},
+			expectErr:     false,
+			expectedCount: 0,
+		},
+		{
+			name:          "Erro - Padrão vazio",
+			pattern:       "",
+			files:         map[string]string{"app.go": "content"},
+			expectErr:     true,
+			expectedError: "argumento inválido",
+		},
+		{
+			name:          "Sucesso - Regex como padrão",
+			pattern:       "TODO|FIXME",
+			files:         map[string]string{"a.go": "// TODO: fix", "b.go": "// FIXME: hack"},
+			expectErr:     false,
+			expectedCount: 2,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tempDir := t.TempDir()
+
+			// Cria os arquivos de teste
+			for name, content := range tc.files {
+				fullPath := filepath.Join(tempDir, name)
+				err := os.WriteFile(fullPath, []byte(content), 0644)
+				if err != nil {
+					t.Fatalf("Falha ao criar arquivo de teste: %v", err)
+				}
+			}
+
+			// Prepara input JSON
+			inputData := GrepSearchInput{Pattern: tc.pattern, Path: tempDir}
+			rawInput, _ := json.Marshal(inputData)
+
+			// Executa a função
+			result, err := grepSearch(rawInput)
+
+			// Verifica erro
+			if (err != nil) != tc.expectErr {
+				t.Fatalf("grepSearch() erro = %v, expectErr %v", err, tc.expectErr)
+			}
+
+			if tc.expectErr && tc.expectedError != "" {
+				if err == nil || !contains(err.Error(), tc.expectedError) {
+					t.Errorf("grepSearch() erro esperado contendo '%s', got '%v'", tc.expectedError, err)
+				}
+				return
+			}
+
+			// Verifica resultado
+			if tc.expectedCount == 0 {
+				if result != "Nenhuma correspondência encontrada." {
+					t.Errorf("grepSearch() resultado = %q, esperado mensagem de nenhuma correspondência", result)
+				}
+				return
+			}
+
+			var matches []grepMatch
+			if err := json.Unmarshal([]byte(result), &matches); err != nil {
+				t.Fatalf("Falha ao decodificar resultado JSON: %v", err)
+			}
+
+			if len(matches) != tc.expectedCount {
+				t.Errorf("grepSearch() encontrou %d correspondências, esperado %d", len(matches), tc.expectedCount)
+			}
+		})
+	}
+}
+
+// TestGrepSearchSubdirectories - Testa busca recursiva em subdiretórios
+func TestGrepSearchSubdirectories(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Cria subdiretório
+	subDir := filepath.Join(tempDir, "subdir")
+	err := os.Mkdir(subDir, 0755)
+	if err != nil {
+		t.Fatalf("Falha ao criar subdiretório: %v", err)
+	}
+
+	// Cria arquivos em diferentes níveis
+	err = os.WriteFile(filepath.Join(tempDir, "root.txt"), []byte("findme at root"), 0644)
+	if err != nil {
+		t.Fatalf("Falha ao criar arquivo: %v", err)
+	}
+	err = os.WriteFile(filepath.Join(subDir, "nested.txt"), []byte("findme at nested"), 0644)
+	if err != nil {
+		t.Fatalf("Falha ao criar arquivo: %v", err)
+	}
+
+	inputData := GrepSearchInput{Pattern: "findme", Path: tempDir}
+	rawInput, _ := json.Marshal(inputData)
+
+	result, err := grepSearch(rawInput)
+	if err != nil {
+		t.Fatalf("grepSearch() erro inesperado: %v", err)
+	}
+
+	var matches []grepMatch
+	if err := json.Unmarshal([]byte(result), &matches); err != nil {
+		t.Fatalf("Falha ao decodificar resultado JSON: %v", err)
+	}
+
+	if len(matches) != 2 {
+		t.Errorf("grepSearch() esperava 2 correspondências, obteve %d", len(matches))
+	}
+}
+
+// TestGrepSearchDefaultPath - Testa busca com caminho padrão (diretório atual)
+func TestGrepSearchDefaultPath(t *testing.T) {
+	// Testa que o input com path vazio usa "." como padrão
+	inputData := GrepSearchInput{Pattern: "grepSearch"}
+	rawInput, _ := json.Marshal(inputData)
+
+	// Não deve dar erro - busca no diretório atual
+	_, err := grepSearch(rawInput)
+	if err != nil {
+		t.Fatalf("grepSearch() com path padrão retornou erro: %v", err)
 	}
 }
 
