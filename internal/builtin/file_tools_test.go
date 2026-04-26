@@ -348,6 +348,7 @@ func TestInvalidJSON(t *testing.T) {
 		{"listFiles", listFiles},
 		{"readFile", readFile},
 		{"writeFile", writeFile},
+			{"grepSearch", grepSearch},
 	}
 
 	invalidJSON := []byte(`{"invalid": json`)
@@ -362,6 +363,141 @@ func TestInvalidJSON(t *testing.T) {
 				t.Errorf("%s() erro deveria mencionar JSON inválido, got: %v", tc.name, err)
 			}
 		})
+	}
+}
+
+// TestGrepSearch - Testa a função grepSearch
+func TestGrepSearch(t *testing.T) {
+	testCases := []struct {
+		name           string
+		pattern        string
+		path           string
+		include        string
+		setupFiles     map[string]string // caminho relativo -> conteúdo
+		expectErr      bool
+		expectedError  string
+		expectedCount  int  // número esperado de matches (-1 = não verificar)
+		expectNoResult bool // espera "Nenhuma ocorrência encontrada."
+	}{
+		{
+			name:    "Sucesso - Busca texto em arquivo",
+			pattern: "hello",
+			setupFiles: map[string]string{
+				"test.txt": "hello world\nsecond line",
+			},
+			expectErr:     false,
+			expectedCount: 1,
+		},
+		{
+			name:    "Sucesso - Busca texto em múltiplos arquivos",
+			pattern: "func",
+			setupFiles: map[string]string{
+				"main.go":   "func main() {}\nother line",
+				"util.go":   "func helper() {}\nno match here",
+				"readme.md": "no match here",
+			},
+			expectErr:     false,
+			expectedCount: 2,
+		},
+		{
+			name:    "Sucesso - Busca com filtro de glob",
+			pattern: "func",
+			include: "*.go",
+			setupFiles: map[string]string{
+				"main.go":   "func main() {}\nother line",
+				"util.go":   "func helper() {}\nno match here",
+				"readme.md": "func not in go file",
+			},
+			expectErr:     false,
+			expectedCount: 2,
+		},
+		{
+			name:           "Sucesso - Nenhuma ocorrência encontrada",
+			pattern:        "xyznonexistent",
+			setupFiles: map[string]string{
+				"test.txt": "hello world",
+			},
+			expectErr:      false,
+			expectNoResult: true,
+		},
+		{
+			name:          "Erro - Pattern vazio",
+			pattern:       "",
+			setupFiles:    map[string]string{},
+			expectErr:     true,
+			expectedError: "argumento inválido",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tempDir := t.TempDir()
+
+			// Cria os arquivos de teste
+			for relPath, content := range tc.setupFiles {
+				fullPath := filepath.Join(tempDir, relPath)
+				dir := filepath.Dir(fullPath)
+				if dir != tempDir {
+					os.MkdirAll(dir, 0755)
+				}
+				err := os.WriteFile(fullPath, []byte(content), 0644)
+				if err != nil {
+					t.Fatalf("Falha ao criar arquivo de teste %s: %v", relPath, err)
+				}
+			}
+
+			// Prepara input JSON
+			inputData := GrepSearchInput{
+				Pattern: tc.pattern,
+				Path:    tempDir,
+				Include: tc.include,
+			}
+			rawInput, _ := json.Marshal(inputData)
+
+			// Executa a função
+			result, err := grepSearch(rawInput)
+
+			// Verifica erro
+			if (err != nil) != tc.expectErr {
+				t.Fatalf("grepSearch() erro = %v, expectErr %v", err, tc.expectErr)
+			}
+
+			if tc.expectErr && tc.expectedError != "" {
+				if err == nil || !contains(err.Error(), tc.expectedError) {
+					t.Errorf("grepSearch() erro esperado contendo '%s', got '%v'", tc.expectedError, err)
+				}
+				return
+			}
+
+			if tc.expectNoResult {
+				if result != "Nenhuma ocorrência encontrada." {
+					t.Errorf("grepSearch() resultado = %q, esperado 'Nenhuma ocorrência encontrada.'", result)
+				}
+				return
+			}
+
+			if !tc.expectErr {
+				var matches []grepMatch
+				if err := json.Unmarshal([]byte(result), &matches); err != nil {
+					t.Fatalf("Falha ao decodificar resultado JSON: %v", err)
+				}
+				if tc.expectedCount >= 0 && len(matches) != tc.expectedCount {
+					t.Errorf("grepSearch() encontrou %d ocorrências, esperava %d", len(matches), tc.expectedCount)
+				}
+			}
+		})
+	}
+}
+
+// TestGrepSearchInvalidJSON - Testa JSON inválido para grepSearch
+func TestGrepSearchInvalidJSON(t *testing.T) {
+	invalidJSON := []byte(`{"invalid": json`)
+	_, err := grepSearch(invalidJSON)
+	if err == nil {
+		t.Errorf("grepSearch() deveria retornar erro para JSON inválido")
+	}
+	if !contains(err.Error(), "JSON inválido") {
+		t.Errorf("grepSearch() erro deveria mencionar JSON inválido, got: %v", err)
 	}
 }
 

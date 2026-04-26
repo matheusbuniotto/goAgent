@@ -140,6 +140,7 @@ func main() {
 		&toolkit.ToolAdapter{Definition: builtin.WriteFileDef},
 		&toolkit.ToolAdapter{Definition: builtin.ReadFileDef},
 		&toolkit.ToolAdapter{Definition: builtin.CreateDirectoryDef},
+			&toolkit.ToolAdapter{Definition: builtin.GrepSearchDef},
 		&toolkit.ToolAdapter{Definition: builtin.AskHumanDef},
 		&toolkit.ToolAdapter{Definition: builtin.AnalyzeReasoningDef},
 		&toolkit.ToolAdapter{Definition: builtin.ReviewDecisionDef},
