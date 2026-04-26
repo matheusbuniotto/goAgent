@@ -20,6 +20,7 @@ func TestToolDefinitionsIntegration(t *testing.T) {
 		{"WriteFileDef", WriteFileDef},
 		{"ReadFileDef", ReadFileDef},
 		{"CreateDirectoryDef", CreateDirectoryDef},
+		{"GrepSearchDef", GrepSearchDef},
 		{"AskHumanDef", AskHumanDef},
 	}
 
@@ -193,6 +194,7 @@ func TestErrorHandlingConsistency(t *testing.T) {
 		{"listFiles", listFiles, `{"path": "/diretorio/inexistente"}`},
 		{"readFile", readFile, `{}`},
 		{"writeFile", writeFile, `{}`},
+			{"grepSearch", grepSearch, `{}`},
 	}
 
 	for _, tc := range testCases {
