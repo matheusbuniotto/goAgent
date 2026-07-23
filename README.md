@@ -310,3 +310,7 @@ go build ./cmd/goagent
 - [ ] Configuração de confirmações (human-in-the-loop)
 - [ ] Interface web opcional
 - [ ] Suporte a diferentes formatos de saída
+
+## Lambda E2E Smoke Test
+
+This final confirmation run went through `terraform apply` end to end: ECR image build and push, IAM role provisioning, Secrets Manager setup, and deployment of a container-image AWS Lambda function, verified with a real `aws lambda invoke`.
