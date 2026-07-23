@@ -310,3 +310,5 @@ go build ./cmd/goagent
 - [ ] Configuração de confirmações (human-in-the-loop)
 - [ ] Interface web opcional
 - [ ] Suporte a diferentes formatos de saída
+
+_Esta edição foi feita por uma invocação real do AWS Lambda (via `aws lambda invoke` contra uma função container-image), como prova E2E de infraestrutura._
