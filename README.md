@@ -1,7 +1,10 @@
 # goAgent
-Implementação **bare bones** de agentes de IA utilizando Go com suporte a múltiplos provedores LLM.
 
-![main-image-gemini-generated](https://github.com/user-attachments/assets/49df3432-b530-481c-bc67-20fadaa0d263)
+A bare-bones AI agent written in pure Go without external SDKs or heavy agent frameworks.
+
+Instead of hiding the mechanics behind layers of abstraction,  implements an agent from the ground up: standard Go interfaces, direct HTTP calls to model providers (OpenRouter, OpenAI, Gemini), and an explicit tool execution loop. Built to tinker with agent architectures, tool dispatching, and reasoning loops in Go.
+
+---
 
 ## Sobre o projeto
 O goAgent é uma implementação de um agente de IA desenvolvida em Go, sem auxílio de SDKs externos. Ele possui diversas ferramentas que podem ser utilizadas para interagir com sistemas de arquivos, automatizar tarefas ou estender funcionalidades de acordo com as necessidades dos usuários.
