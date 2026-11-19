@@ -33,3 +33,4 @@ go.work.sum
 
 # Claude Code generated files
 CLAUDE.md
+/goagent
